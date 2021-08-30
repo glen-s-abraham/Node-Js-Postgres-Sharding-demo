@@ -1,9 +1,9 @@
 const express = require('express');
 const {Client} = require('pg')
-const ConsistentHash = require('consistent-hash');
+const HashRing = require('hashring');
 const crypto = require('crypto'); 
 
-const hr = new ConsistentHash();
+const hr = new HashRing();
 hr.add('5432');
 hr.add('5433');
 hr.add('5434');
@@ -43,7 +43,15 @@ async function connect()
 }
 
 app.get('/',(req,res)=>{
-
+    const urlId = req.query.urlid;
+    const server = hr.get(urlId);
+    console.log(server);
+    const queryString = `SELECT * FROM url_table WHERE url_id = '${urlId}'`; 
+    clients[server].query(queryString).then(result=>{
+        if(result.rowCount>0){
+            res.send(result.rows);
+        }
+    })
 });
 
 app.post('/',(req,res)=>{
